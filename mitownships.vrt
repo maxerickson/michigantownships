@@ -1,0 +1,10 @@
+<OGRVRTDataSource>
+    <OGRVRTLayer name="civil">
+        <SrcDataSource>/share/gis/micivil</SrcDataSource>
+        <SrcLayer>Minor_Civil_Divisions_Cities__Townships_v17a</SrcLayer>
+    </OGRVRTLayer>
+    <OGRVRTLayer name="mitownships">
+        <SrcDataSource>mitownships.csv</SrcDataSource>
+	<GeometryField encoding="PointFromColumns" x="Longitude" y="Latitude"/>
+    </OGRVRTLayer>
+</OGRVRTDataSource>
