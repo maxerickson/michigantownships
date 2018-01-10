@@ -30,6 +30,9 @@ if __name__=="__main__":
             idcol=header.index("ID")
             writer.writerow(header)
             for row in reader:
+                # skip problematic duplicate.
+                if row[idcol]=="1625796":
+                    continue
                 if row[idcol] in wikidata:
                     item,title=wikidata[row[idcol]]
                     row.append(item)
