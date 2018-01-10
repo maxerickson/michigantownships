@@ -1,9 +1,11 @@
-SELECT ?item ?page_title ?itemLabel ?countyLabel ?gnis
-WHERE 
-{
-  ?item wdt:P31 wd:Q17205774.
+SELECT DISTINCT ?item ?page_title ?itemLabel ?countyLabel ?gnis WHERE {
+  { ?item wdt:P31 wd:Q5086782 } UNION {?item wdt:P31 wd:Q17205774 }
   OPTIONAL { ?item wdt:P590 ?gnis. }
   OPTIONAL { ?item wdt:P131 ?county. }
-  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ;  schema:name ?page_title . }
+  OPTIONAL {
+    ?article schema:about ?item.
+    ?article schema:isPartOf <https://en.wikipedia.org/>.
+    ?article schema:name ?page_title.
+  }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
 }
