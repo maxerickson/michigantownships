@@ -26,7 +26,7 @@ townships={
 
 townshipmap=dict()
 with open(os.path.join(__location__,"mitownships.csv")) as data:
-    reader=csv.DictReader(data, delimiter="\t")
+    reader=csv.DictReader(data)
     for row in reader:
         townshipmap[row["ID"]]=row
 
@@ -37,6 +37,8 @@ def filterTags(tags):
     # append " Township"? could also use LABEL
     if "NAME" in tags:
         newtags["name"]=tags["NAME"]
+    if "County" in tags:
+        newtags["county"]=tags["County"]
     if "TYPE" in tags:
         t=tags["TYPE"]
         if t=="Township":

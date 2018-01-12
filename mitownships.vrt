@@ -7,4 +7,8 @@
         <SrcDataSource>mitownships.csv</SrcDataSource>
 	<GeometryField encoding="PointFromColumns" x="Longitude" y="Latitude"/>
     </OGRVRTLayer>
+    <OGRVRTLayer name="micivil">
+        <SrcDataSource>micivil.csv</SrcDataSource>
+	<GeometryField encoding="PointFromColumns" x="Longitude" y="Latitude"/>
+    </OGRVRTLayer>
 </OGRVRTDataSource>

@@ -20,7 +20,7 @@ if __name__=="__main__":
     with open(args.infile) as inf:
         reader=csv.reader(inf, delimiter="|")
         with open(args.outfile, 'w') as ouf:
-            writer=csv.writer(ouf, delimiter="\t")
+            writer=csv.writer(ouf)
             header=next(reader)
             header[0]="FeatureName"
             if header[-1]=="":
