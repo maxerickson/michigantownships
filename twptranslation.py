@@ -35,23 +35,22 @@ def filterTags(tags):
         return
     newtags = {}
     # append " Township"? could also use LABEL
-    if "NAME" in tags:
-        newtags["name"]=tags["NAME"]
-    if "County" in tags:
-        newtags["county"]=tags["County"]
-    if "TYPE" in tags:
-        t=tags["TYPE"]
+    for t in ["name","county"]:
+        if t in tags:
+            newtags[t]=tags[t]
+    if "border_typ" in tags:
+        t=tags["border_typ"]
+        newtags["border_type"]=t.lower()
         if t=="Township":
             newtags["admin_level"]="7"
             newtags["boundary"]="administrative"
-            newtags["border_type"]="township"
             # add gnis and wikidata tags.
             gid=source=None
             if "ID" in tags and tags["ID"]!="":
                 gid=tags["ID"]
                 source=tags
-            elif tags["NAME"] in townships:
-                gid=townships[tags["NAME"]]
+            elif tags["name"] in townships:
+                gid=townships[tags["name"]]
                 source=townshipmap[gid]
             if gid is not None:
                 newtags["gnis:feature_id"]=gid
