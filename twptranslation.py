@@ -132,8 +132,8 @@ def preOutputTransform(geometries, features):
     points = [g for g in geometries if type(g) == geom.Point]
     points = [g for g in points if len(g.parents) > 1]
     featuresmap = {feature.geometry : feature for feature in features}
-    corners = findCorners(geometries)
     print("Splitting relations")
+    corners = findCorners(geometries)
     ways = [g for g in geometries if type(g) == geom.Way]
     for way in ways:
         is_way_in_relation = len([p for p in way.parents if type(p) == geom.Relation]) > 0
@@ -150,3 +150,10 @@ def preOutputTransform(geometries, features):
             else:
                 for rel in way.parents:
                     splitWayInRelation(rel, way_parts)
+    # add boundary tags to all ways
+    ways = [g for g in geometries if type(g) == geom.Way]
+    for way in ways:
+        feat = geom.Feature()
+        feat.geometry = way
+        feat.tags = {"admin_level":"7", 
+                            "boundary":"administrative"}
