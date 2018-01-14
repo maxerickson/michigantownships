@@ -69,7 +69,6 @@ def filterTags(tags):
 
 def splitWay(way, corners, features_map):
     idxs=sorted([way.points.index(c) for c in corners])
-    print(idxs)
     new_points=list()
     for a,b in zip(idxs,idxs[1:]+idxs[:1]):
         if a < b:
@@ -103,6 +102,7 @@ def mergeIntoNewRelation(way_parts):
     new_relation.members = [(way, "outer") for way in way_parts]
     for way in way_parts:
         way.addparent(new_relation)
+    return feat
 
 def splitWayInRelation(rel, way_parts):
     way_roles = [m[1] for m in rel.members if m[0] == way_parts[0]]
@@ -133,17 +133,20 @@ def preOutputTransform(geometries, features):
     points = [g for g in points if len(g.parents) > 1]
     featuresmap = {feature.geometry : feature for feature in features}
     corners = findCorners(geometries)
-    print("Splitting ways.")
+    print("Splitting relations")
     ways = [g for g in geometries if type(g) == geom.Way]
     for way in ways:
         is_way_in_relation = len([p for p in way.parents if type(p) == geom.Relation]) > 0
         thesecorners = set(corners).intersection(way.points)
         if len(thesecorners) > 1:
-            wl=len(way.points)
             way_parts = splitWay(way, thesecorners, featuresmap)
-            print(wl,sum(len(w.points) for w in way_parts))
             if not is_way_in_relation:
-                mergeIntoNewRelation(way_parts)
+                rel=mergeIntoNewRelation(way_parts)
+                featuresmap = {feature.geometry : feature for feature in features}
+                rel.tags=featuresmap[way].tags
+                for wg,role in rel.geometry.members:
+                    if wg in featuresmap:
+                        features.remove(featuresmap[wg])
             else:
                 for rel in way.parents:
                     splitWayInRelation(rel, way_parts)
