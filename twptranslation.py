@@ -116,9 +116,9 @@ def splitWayInRelation(rel, way_parts):
         way.addparent(rel)
         rel.members.append((way, way_role))
 
-def findCorners(geometries):
+def findSharedVertices(geometries):
     points = [g for g in geometries if type(g) == geom.Point and len(g.parents) > 1]
-    corners=list()
+    vertices=list()
     for p in points:
         neighbors=set()
         for way in p.parents:
@@ -130,8 +130,8 @@ def findCorners(geometries):
                     if pt!=p.id:
                         neighbors.add(pt)
         if len(neighbors) > 2:
-            corners.append(p)
-    return corners
+            vertices.append(p)
+    return vertices
 
 def preOutputTransform(geometries, features):
     if geometries is None and features is None:
@@ -141,20 +141,21 @@ def preOutputTransform(geometries, features):
     # move tags, remove member ways as Features.
     rels=[g for g in geometries if type(g) == geom.Relation]
     for rel in rels:
+        # splitWayInRelation does not add the relation as a parent.
+        for member,role in rel.members:
+            if rel not in member.parents:
+                member.addparent(rel)
         relfeat=featuresmap[rel]
         if relfeat.tags=={}:
             relfeat.tags=featuresmap[rel.members[0][0]].tags
             for member,role in rel.members:
-                # splitWayInRelation does not add the relation as a parent.
-                if rel not in member.parents:
-                    member.addparent(rel)
                 if member in featuresmap:
                     member.removeparent(featuresmap[member])
         else:
             pass
             #~ print("Relation {} has tags.".format(rel.id),relfeat.tags)
     print("Splitting relations")
-    corners = findCorners(geometries)
+    corners = findSharedVertices(geometries)
     ways = [g for g in geometries if type(g) == geom.Way]
     for way in ways:
         is_way_in_relation = len([p for p in way.parents if type(p) == geom.Relation]) > 0
