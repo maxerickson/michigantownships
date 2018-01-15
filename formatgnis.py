@@ -74,7 +74,7 @@ if __name__=="__main__":
                 else:
                     row.append("")
                     row.append("")
-                # Fix differening labels.
+                # Fix differing labels.
                 if row[0] in mismatched_labels:
                     row[0]=mismatched_labels[row[0]]
                 writer.writerow(row)

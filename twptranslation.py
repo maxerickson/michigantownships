@@ -56,6 +56,7 @@ def splitWay(way, corners, features_map):
                 feat = geom.Feature()
                 feat.geometry = new_way
                 feat.tags = way_tags
+                new_way.addparent(feat)
 
     for new_way, points in zip(new_ways, new_points):
         new_way.points = points
@@ -103,6 +104,7 @@ def findSharedVertices(geometries):
 def preOutputTransform(geometries, features):
     if geometries is None and features is None:
         return
+    lint(geometries,"At entry")
     featuresmap = {feature.geometry : feature for feature in features}
     print("Moving tags to relations")
     # move tags, remove member ways as Features.
@@ -114,13 +116,31 @@ def preOutputTransform(geometries, features):
                 member.addparent(rel)
         relfeat=featuresmap[rel]
         if relfeat.tags=={}:
-            relfeat.tags=featuresmap[rel.members[0][0]].tags
+            outers=[m[0] for m in rel.members if m[1]=="outer"]
+            relfeat.tags=featuresmap[outers[0]].tags
             for member,role in rel.members:
-                if member in featuresmap:
+                if role=="outer" and member in featuresmap:
                     member.removeparent(featuresmap[member])
         else:
             pass
             #~ print("Relation {} has tags.".format(rel.id),relfeat.tags)
+    # create relations for ways that are features.
+    ways = [g for g in geometries if type(g) == geom.Way]
+    for way in ways:
+        feature = False
+        outers = []
+        for parent in way.parents:
+            if type(parent) == geom.Feature:
+                feature = parent
+            #~ if type(parent) == geom.Relation:
+                #~ for member,role in parent.members:
+                    #~ if role == "outer" and member == way:
+                        #~ outers.append(parent)
+        if feature:
+            newrel = geom.Relation()
+            way.addparent(newrel)
+            newrel.members.append((way,"outer"))
+            feature.replacejwithi(newrel, way)
     print("Splitting relations")
     lint(geometries,"Before split")
     corners = findSharedVertices(geometries)
@@ -131,7 +151,7 @@ def preOutputTransform(geometries, features):
         if len(thesecorners) > 1:
             way_parts = splitWay(way, thesecorners, featuresmap)
             if not is_way_in_relation:
-                rel=mergeIntoNewRelation(way_parts)
+                rel = mergeIntoNewRelation(way_parts)
                 featuresmap = {feature.geometry : feature for feature in features}
                 if way in featuresmap:
                     rel.tags.update(featuresmap[way].tags)
@@ -146,28 +166,32 @@ def preOutputTransform(geometries, features):
     lint(geometries,"After split")
     ways = [g for g in geometries if type(g) == geom.Way]
     # combine duplicate ways.
-    worklist=ways
+    removed=list()
     def similar(way1, way2):
-        if way1.points==way2.points:
-            return True
-        if list(reversed(way1.points))==way2.points:
-            return True
-        return False
-    for way in worklist:
+        if len(way1.points)!=len(way2.points):
+            return False
+        return set(way1.points)==set(way2.points)
+    t=[w for w in geometries if type(w)==geom.Way and w.id in (-665845,-665833)]
+    if len(t) > 1:
+        print(similar(t[0],t[1]))
+    for way in ways:
         # skip ways that are already gone
-        if way not in ways:
+        if way in removed:
             continue
         for otherway in ways:
             if otherway.id!=way.id and similar(way,otherway):
                 for parent in list(otherway.parents):
-                    if type(parent)==geom.Relation:
-                        parent.replacejwithi(way, otherway)
-                ways.remove(otherway)
+                    parent.replacejwithi(way, otherway)
+                removed.append(otherway)
+    ways=[g for g in geometries if type(g)  == geom.Way]
+    featuresmap = {feature.geometry : feature for feature in features}
     for way in ways:
-        feat = geom.Feature()
-        feat.geometry = way
-        feat.tags = {"admin_level":"7", 
-                            "boundary":"administrative"}
+        if way not in featuresmap:
+            feat = geom.Feature()
+            feat.geometry = way
+            feat.tags.update({"admin_level":"7", 
+                "boundary":"administrative"})
+    lint(geometries,"After combine.")
     for feat in features:
         if "type" in feat.tags:
             feat.tags["type"]="boundary"
@@ -176,20 +200,33 @@ def preOutputTransform(geometries, features):
 def lint(geometries, message=""):
     ways=[g for g in geometries if type(g) == geom.Way]
     rels=[g for g in geometries if type(g) == geom.Relation]
+    results=list()
+    # check for geometries with no parents.
+    noparents=list()
+    results.append(noparents)
+    for geo in geometries:
+        if len(geo.parents)==0:
+            noparents.append(geo)
     # check for duplicate nodes in ways
     dupenodes=list()
+    results.append(dupenodes)
     onenodeways=list()
+    results.append(onenodeways)
     count=0
     for way in ways:
         for i in range(1,len(way.points)):
             if way.points[i-1]==way.points[i]:
-                dupenodes.append(way.id, i)
+                dupenodes.append(way, i)
                 count+=1
         if len(way.points)==1:
-            onenodeways.append(way.id)
+            onenodeways.append(way)
             count+=1
-    if count and message:
+    if message and any(results):
         print(message)
+    if noparents:
+        print("{} geometries with no parents.".format(len(noparents)))
+        for p in noparents:
+            print(p)
     if dupenodes:
         print("{} duplicate nodes in ways.".format(len(dupenodes)))
     if onenodeways:
