@@ -9,21 +9,21 @@ __location__=os.path.dirname(os.path.realpath(__file__))
 # Special case townships that fail spacial join. The names of the missed
 # matchs are unique so no need for further special handling.
 townships={
-"Caseville":"1626041",
-"Eagle Harbor":"1626201",
-"Fairhaven":"1626266",
-"Glen Arbor":"1626359",
-"Gore":"1626365",
-"Houghton":"1626493",
-"Lake":"1626573",
-"Leelanau":"1626601",
-"Leland":"1626603",
-"Pointe Aux Barques":"1626921",
-"Port Austin":"1626928",
-"Rubicon":"1627014",
-"Sims":"1627084",
-"St James":"1627029",
-"Suttons Bay":"1627143",
+#~ "Caseville":"1626041",
+#~ "Eagle Harbor":"1626201",
+#~ "Fairhaven":"1626266",
+#~ "Glen Arbor":"1626359",
+#~ "Gore":"1626365",
+#~ "Houghton":"1626493",
+#~ "Lake":"1626573",
+#~ "Leelanau":"1626601",
+#~ "Leland":"1626603",
+#~ "Pointe Aux Barques":"1626921",
+#~ "Port Austin":"1626928",
+#~ "Rubicon":"1627014",
+#~ "Sims":"1627084",
+#~ "St James":"1627029",
+#~ "Suttons Bay":"1627143",
 }
 
 townshipmap=dict()
@@ -71,7 +71,9 @@ def splitWay(way, corners, features_map):
     idxs=sorted([way.points.index(c) for c in corners])
     new_points=list()
     for a,b in zip(idxs,idxs[1:]+idxs[:1]):
-        if a < b:
+        if a==b:
+            continue
+        elif a < b:
             new_points.append(way.points[a:b+1])
         else:
             # glue "tails" of circular ways together
@@ -126,9 +128,10 @@ def findSharedVertices(geometries):
             if idx > -1:
                 for step in [-1,1]:
                     pt=way.points[(idx+step)%len(way.points)].id
-                    # earlier steps leave duplicate nodes, don't count them.
-                    if pt!=p.id:
-                        neighbors.add(pt)
+                    # Take an extra step at the ends of circular ways.
+                    if pt==p.id:
+                        pt=way.points[(idx+2*step)%len(way.points)].id
+                    neighbors.add(pt)
         if len(neighbors) > 2:
             vertices.append(p)
     return vertices
@@ -155,6 +158,7 @@ def preOutputTransform(geometries, features):
             pass
             #~ print("Relation {} has tags.".format(rel.id),relfeat.tags)
     print("Splitting relations")
+    lint(geometries,"Before split")
     corners = findSharedVertices(geometries)
     ways = [g for g in geometries if type(g) == geom.Way]
     for way in ways:
@@ -175,7 +179,7 @@ def preOutputTransform(geometries, features):
                     if type(parent)==geom.Relation:
                         splitWayInRelation(parent, way_parts)
     print("Merging relations")
-    #~ lint(geometries)
+    lint(geometries,"After split")
     ways = [g for g in geometries if type(g) == geom.Way]
     # combine duplicate ways.
     worklist=ways
@@ -195,7 +199,6 @@ def preOutputTransform(geometries, features):
                     if type(parent)==geom.Relation:
                         parent.replacejwithi(way, otherway)
                 ways.remove(otherway)
-
     for way in ways:
         feat = geom.Feature()
         feat.geometry = way
@@ -206,19 +209,25 @@ def preOutputTransform(geometries, features):
             feat.tags["type"]="boundary"
 
 
-def lint(geometries):
+def lint(geometries, message=""):
     ways=[g for g in geometries if type(g) == geom.Way]
     rels=[g for g in geometries if type(g) == geom.Relation]
     # check for duplicate nodes in ways
+    dupenodes=list()
+    onenodeways=list()
     count=0
     for way in ways:
-        zaps=set()
         for i in range(1,len(way.points)):
             if way.points[i-1]==way.points[i]:
-                zaps.add(i)
-        if zaps:
-            count+=len(zaps)
-    if count > 0:
-        print("{} duplicate nodes in ways.".format(count))
-    # check that relation members exist
+                dupenodes.append(way.id, i)
+                count+=1
+        if len(way.points)==1:
+            onenodeways.append(way.id)
+            count+=1
+    if count and message:
+        print(message)
+    if dupenodes:
+        print("{} duplicate nodes in ways.".format(len(dupenodes)))
+    if onenodeways:
+        print("{} one node ways.".format(len(onenodeways)))
     
