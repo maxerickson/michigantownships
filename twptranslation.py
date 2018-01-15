@@ -144,10 +144,12 @@ def preOutputTransform(geometries, features):
         relfeat=featuresmap[rel]
         if relfeat.tags=={}:
             relfeat.tags=featuresmap[rel.members[0][0]].tags
-            #~ print("Got here", relfeat.tags)
-            for wg,role in rel.members:
-                if wg in featuresmap:
-                    wg.removeparent(featuresmap[wg])
+            for member,role in rel.members:
+                # splitWayInRelation does not add the relation as a parent.
+                if rel not in member.parents:
+                    member.addparent(rel)
+                if member in featuresmap:
+                    member.removeparent(featuresmap[member])
         else:
             pass
             #~ print("Relation {} has tags.".format(rel.id),relfeat.tags)
@@ -167,23 +169,13 @@ def preOutputTransform(geometries, features):
                 for wg,role in rel.geometry.members:
                     if wg in featuresmap:
                         wg.removeparent(featuresmap[wg])
-                        #~ features.remove(featuresmap[wg])
             else:
-                for rel in way.parents:
-                    if type(rel)==geom.Relation:
-                        splitWayInRelation(rel, way_parts)
+                for parent in way.parents:
+                    if type(parent)==geom.Relation:
+                        splitWayInRelation(parent, way_parts)
     print("Merging relations")
-    lint(geometries)
+    #~ lint(geometries)
     ways = [g for g in geometries if type(g) == geom.Way]
-    #~ # vacuum duplicated points.
-    #~ for way in ways:
-        #~ zaps=set()
-        #~ for i in range(1,len(way.points)):
-            #~ if way.points[i-1]==way.points[i]:
-                #~ zaps.add(i)
-        #~ if zaps:
-            #~ way.points=[p for i,p in enumerate(way.points) if i not in zaps]
-            #~ print("Zapping")
     # combine duplicate ways.
     worklist=ways
     def similar(way1, way2):
@@ -197,8 +189,6 @@ def preOutputTransform(geometries, features):
         if way not in ways:
             continue
         for otherway in ways:
-        #~ others=[o for o in ways if way.id!=o.id and similar(way,o)]
-        #~ for other in others:
             if otherway.id!=way.id and similar(way,otherway):
                 for parent in list(otherway.parents):
                     if type(parent)==geom.Relation:
@@ -217,6 +207,7 @@ def preOutputTransform(geometries, features):
 
 def lint(geometries):
     ways=[g for g in geometries if type(g) == geom.Way]
+    rels=[g for g in geometries if type(g) == geom.Relation]
     # check for duplicate nodes in ways
     count=0
     for way in ways:
@@ -228,3 +219,5 @@ def lint(geometries):
             count+=len(zaps)
     if count > 0:
         print("{} duplicate nodes in ways.".format(count))
+    # check that relation members exist
+    
