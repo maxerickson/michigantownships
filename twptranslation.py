@@ -32,10 +32,13 @@ def filterTags(tags):
     return newtags
 
 def splitWay(way, corners, features_map):
-    idxs=sorted([way.points.index(c) for c in corners])
-    ends=[0]+idxs+[len(way.points)-1]
+    idxs=[way.points.index(c) for c in corners]
+    # add ends if they are not already present
+    for pt in [0,len(way.points)-1]:
+        idxs.append(pt)
+    idxs.sort()
     new_points=list()
-    for start,end in zip([0]+idxs,idxs+[len(way.points)]):#zip(idxs,idxs[1:]+idxs[:1]):
+    for start,end in zip(idxs,idxs[1:]):
         if start==end:
             continue
         else:
@@ -93,7 +96,7 @@ def findSharedVertices(geometries):
                 for step in [-1,1]:
                     pt=way.points[(idx+step)%len(way.points)].id
                     # Take an extra step at the ends of circular ways.
-                    if pt==p.id:
+                    if way.points[0]==way.points[-1] and pt==p.id:
                         pt=way.points[(idx+2*step)%len(way.points)].id
                     neighbors.add(pt)
         if len(neighbors) > 2:
