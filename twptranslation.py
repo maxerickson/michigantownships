@@ -173,6 +173,7 @@ def preOutputTransform(geometries, features):
             feature.replacejwithi(newrel, way)
     print("Splitting relations")
     lint(geometries,"Before split")
+    featuresmap = {feature.geometry : feature for feature in features}
     corners = findSharedVertices(geometries)
     ways = [g for g in geometries if type(g) == geom.Way]
     for way in ways:
@@ -192,19 +193,24 @@ def preOutputTransform(geometries, features):
                 for parent in way.parents:
                     if type(parent)==geom.Relation:
                         splitWayInRelation(parent, way_parts)
-    print("Merging relations")
     lint(geometries,"After split")
-    ways = [g for g in geometries if type(g) == geom.Way]
+    print("Merging relations")
+    ways = sorted([g for g in geometries if type(g) == geom.Way], key=lambda g: len(g.points))
     # combine duplicate ways.
     removed=list()
+    worklist=list(ways)
     for way in ways:
         # skip ways that are already gone
         if way in removed:
             continue
-        for otherway in ways:
+        worklist.remove(way)
+        for otherway in worklist:
+            if len(otherway.points) > len(way.points):
+                break
             if otherway.id!=way.id and similar(way,otherway):
                 for parent in list(otherway.parents):
-                    parent.replacejwithi(way, otherway)
+                    if type(parent) == geom.Relation:
+                        parent.replacejwithi(way, otherway)
                 removed.append(otherway)
     ways=[g for g in geometries if type(g)  == geom.Way]
     featuresmap = {feature.geometry : feature for feature in features}
@@ -216,7 +222,7 @@ def preOutputTransform(geometries, features):
                 "boundary":"administrative"})
     lint(geometries,"After combine.")
     for feat in features:
-        if "type" in feat.tags:
+        if type(feat.geometry) == geom.Relation:
             feat.tags["type"]="boundary"
 
 
