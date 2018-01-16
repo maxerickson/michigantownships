@@ -101,6 +101,36 @@ def findSharedVertices(geometries):
             vertices.append(p)
     return vertices
 
+def similar(way1, way2):
+    if len(way1.points)!=len(way2.points):
+        return False
+    w1=[w.id for w in way1.points]
+    w2=[w.id for w in way2.points]
+    if w1[0] not in w2:
+        return False
+    if set(w1) != set(w2):
+        return False
+    # closed way
+    if w1[0]==w1[-1]:
+        idx1=w1.index(min(w1))
+        w1=w1[idx1:-1]+w1[:idx1]
+        if w2[0]==w2[-1]:
+            idx2=w2.index(min(w2))
+            w2=w2[idx2:-1]+w2[:idx2]
+        # second way is not closed
+        else:
+            return False
+        if w1==w2:
+            return True
+        if w1==w2[:1]+w2[1:][::-1]:
+            return True
+    else:
+        if w1==w2:
+            return True
+        if w1==w2[::-1]:
+            return True
+    return False
+
 def preOutputTransform(geometries, features):
     if geometries is None and features is None:
         return
@@ -167,13 +197,6 @@ def preOutputTransform(geometries, features):
     ways = [g for g in geometries if type(g) == geom.Way]
     # combine duplicate ways.
     removed=list()
-    def similar(way1, way2):
-        if len(way1.points)!=len(way2.points):
-            return False
-        return set(way1.points)==set(way2.points)
-    t=[w for w in geometries if type(w)==geom.Way and w.id in (-665845,-665833)]
-    if len(t) > 1:
-        print(similar(t[0],t[1]))
     for way in ways:
         # skip ways that are already gone
         if way in removed:
