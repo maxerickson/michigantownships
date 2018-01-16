@@ -35,7 +35,8 @@ def splitWay(way, corners, features_map):
     idxs=[way.points.index(c) for c in corners]
     # add ends if they are not already present
     for pt in [0,len(way.points)-1]:
-        idxs.append(pt)
+        if pt not in idxs:
+            idxs.append(pt)
     idxs.sort()
     new_points=list()
     for start,end in zip(idxs,idxs[1:]):
@@ -43,10 +44,10 @@ def splitWay(way, corners, features_map):
             continue
         else:
             new_points.append(way.points[start:(end+1)])
-        # glue tails of closed ways back together.
-        #~ if way.points[0]==way.points[-1]:
-            #~ t=new_points.pop()
-            #~ new_points[0]=t[:-1]+new_points[0]
+    # glue tails of closed ways back together.
+    if way.points[0]==way.points[-1]:
+        t=new_points.pop()
+        new_points[0]=t[:-1]+new_points[0]
     new_ways = [way, ] + [geom.Way() for i in range(len(new_points) - 1)]
 
     if way in features_map:
@@ -65,8 +66,6 @@ def splitWay(way, corners, features_map):
             for point in points:
                 point.removeparent(way, shoulddestroy=False)
                 point.addparent(new_way)
-    wls=[len(w.points) for w in new_ways]
-    print(len(new_ways),sum(wls),wls)
     return new_ways
 
 def mergeIntoNewRelation(way_parts):
