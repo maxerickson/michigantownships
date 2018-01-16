@@ -33,19 +33,17 @@ def filterTags(tags):
 
 def splitWay(way, corners, features_map):
     idxs=sorted([way.points.index(c) for c in corners])
+    ends=[0]+idxs+[len(way.points)-1]
     new_points=list()
-    for a,b in zip(idxs,idxs[1:]+idxs[:1]):
-        if a==b:
+    for start,end in zip([0]+idxs,idxs+[len(way.points)]):#zip(idxs,idxs[1:]+idxs[:1]):
+        if start==end:
             continue
-        elif a < b:
-            new_points.append(way.points[a:b+1])
         else:
-            # glue "tails" of circular ways together
-            if way.points[-1]==way.points[0]:
-                new_points.append(way.points[a:]+way.points[1:b+1])
-            else:
-                new_points.append(way.points[a:])
-                new_points.append(way.points[:b+1])
+            new_points.append(way.points[start:(end+1)])
+        # glue tails of closed ways back together.
+        #~ if way.points[0]==way.points[-1]:
+            #~ t=new_points.pop()
+            #~ new_points[0]=t[:-1]+new_points[0]
     new_ways = [way, ] + [geom.Way() for i in range(len(new_points) - 1)]
 
     if way in features_map:
@@ -64,7 +62,8 @@ def splitWay(way, corners, features_map):
             for point in points:
                 point.removeparent(way, shoulddestroy=False)
                 point.addparent(new_way)
-
+    wls=[len(w.points) for w in new_ways]
+    print(len(new_ways),sum(wls),wls)
     return new_ways
 
 def mergeIntoNewRelation(way_parts):
