@@ -80,5 +80,6 @@ if __name__=="__main__":
                     row[0]=mismatched_labels[row[0]]
                 # Special case township that fails spatial join with name that appears multiple times
                 if row[0]=="Township of Lake" and row[countycol]=="Huron":
-                    row[0]="Lake Township"
+                    row[header.index("Latitude")]="43.9600311"
+                    row[header.index("Longitude")]="-83.1839175"
                 writer.writerow(row)
