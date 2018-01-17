@@ -20,7 +20,7 @@ mismatched_labels={
 "Township of Saint James":"St James Township",
 "Township of Pointe Aux Barques":"Pointe Aux Barques Township",
 "Township of Port Austin":"Port Austin Township",
-"Township of Lake":"Lake Township",
+#"Township of Lake":"Lake Township",
 "Township of Gore":"Gore Township",
 "Township of Caseville":"Caseville Township",
 "Township of Rubicon":"Rubicon Township",
@@ -60,6 +60,7 @@ if __name__=="__main__":
             header.append("wikidata")
             header.append("wikipedia")
             idcol=header.index("ID")
+            countycol=header.index("County")
             writer.writerow(header)
             for row in reader:
                 # skip problematic duplicate.
@@ -77,4 +78,7 @@ if __name__=="__main__":
                 # Fix differing labels.
                 if row[0] in mismatched_labels:
                     row[0]=mismatched_labels[row[0]]
+                # Special case township that fails spatial join with name that appears multiple times
+                if row[0]=="Township of Lake" and row[countycol]=="Huron":
+                    row[0]="Lake Township"
                 writer.writerow(row)
