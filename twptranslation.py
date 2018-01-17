@@ -32,22 +32,34 @@ def filterTags(tags):
     return newtags
 
 def splitWay(way, corners, features_map):
-    idxs=[way.points.index(c) for c in corners]
-    # add ends if they are not already present
-    for pt in [0,len(way.points)-1]:
-        if pt not in idxs:
-            idxs.append(pt)
+    idxs=list()
+    for c in corners:
+        i = -1
+        try:
+            while 1:
+                i = way.points.index(c, i+1)
+                idxs.append(i)
+        except ValueError:
+            pass
     idxs.sort()
+    #~ corners=[way.points.index(c) for c in corners]
+    #~ idxs=sorted(corners)
+    splitends=0 in idxs or (len(way.points)-1) in idxs
     new_points=list()
-    for start,end in zip(idxs,idxs[1:]):
-        if start==end:
-            continue
+    left=0
+    for cut in idxs:
+        if cut!=0:
+            new_points.append(way.points[left:(cut+1)])
+        left=cut
+    # remainder
+    if left < len(way.points)-1:
+        #closed way
+        if not splitends and isClosed(way):
+            new_points[0]=way.points[left:-1]+new_points[0]
         else:
-            new_points.append(way.points[start:(end+1)])
-    # glue tails of closed ways back together.
-    if way.points[0]==way.points[-1]:
-        t=new_points.pop()
-        new_points[0]=t[:-1]+new_points[0]
+            new_points.append(way.points[left:])
+    #~ print(len(way.points),[len(p) for p in new_points])
+
     new_ways = [way, ] + [geom.Way() for i in range(len(new_points) - 1)]
 
     if way in features_map:
@@ -132,6 +144,9 @@ def similar(way1, way2):
             return True
     return False
 
+def isClosed(way):
+    return way.points[0] == way.points[-1]
+
 def preOutputTransform(geometries, features):
     if geometries is None and features is None:
         return
@@ -213,6 +228,24 @@ def preOutputTransform(geometries, features):
                     if type(parent) == geom.Relation:
                         parent.replacejwithi(way, otherway)
                 removed.append(otherway)
+    # merge adjacent ways
+    ways = [g for g in geometries if type(g) == geom.Way]
+    junctions=set()
+    for way in ways:
+        for point in [way.points[0],way.points[-1]]:
+            if len(point.parents) == 2:
+                junctions.add(point)
+    #~ print(len(junctions))
+    #~ c=0
+    #~ for j in junctions:
+        #~ for p in j.parents:
+            #~ for p2 in p.parents:
+                #~ for p3 in p2.parents:
+                    #~ print(j.id,p3.tags["name"],len(p.points))
+        #~ if c==10:
+            #~ break
+    #~ c+=1
+    # add tags to all ways
     ways=[g for g in geometries if type(g)  == geom.Way]
     featuresmap = {feature.geometry : feature for feature in features}
     for way in ways:
