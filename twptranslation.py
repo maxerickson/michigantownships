@@ -32,18 +32,7 @@ def filterTags(tags):
     return newtags
 
 def splitWay(way, corners, features_map):
-    idxs=list()
-    for c in corners:
-        i = -1
-        try:
-            while 1:
-                i = way.points.index(c, i+1)
-                idxs.append(i)
-        except ValueError:
-            pass
-    idxs.sort()
-    #~ corners=[way.points.index(c) for c in corners]
-    #~ idxs=sorted(corners)
+    idxs=[i for i,c in enumerate(way.points) if c in corners]
     splitends=0 in idxs or (len(way.points)-1) in idxs
     new_points=list()
     left=0
