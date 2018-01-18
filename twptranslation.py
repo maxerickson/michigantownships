@@ -253,14 +253,31 @@ def preOutputTransform(geometries, features):
             #~ break
     #~ c+=1
     # add tags to all ways
+    print("Tagging member ways")
     ways=[g for g in geometries if type(g)  == geom.Way]
     featuresmap = {feature.geometry : feature for feature in features}
     for way in ways:
-        if way not in featuresmap:
-            feat = geom.Feature()
-            feat.geometry = way
-            feat.tags.update({"admin_level":"7", 
-                "boundary":"administrative"})
+        for parent in way.parents:
+            admin_levels=[]
+            boundaries=[]
+            if parent in featuresmap:
+                parfeat=featuresmap[parent]
+                if "admin_level" in parfeat.tags:
+                    admin_levels.append(parfeat.tags["admin_level"])
+                if "boundary" in parfeat.tags:
+                    boundaries.append(parfeat.tags["boundary"])
+        newtags={}
+        if admin_levels:
+            newtags["admin_level"]=min(admin_levels,key=int)
+        if boundaries:
+            newtags["boundary"]=boundaries.pop()
+        if newtags:
+            if way not in featuresmap:
+                feat = geom.Feature()
+                feat.geometry = way
+            else:
+                feat = featuresmap[way]
+            feat.tags.update(newtags)
     lint(geometries,"After combine.")
     for feat in features:
         if type(feat.geometry) == geom.Relation:
