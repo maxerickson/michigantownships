@@ -103,6 +103,20 @@ def findSharedVertices(geometries):
             vertices.append(p)
     return vertices
 
+def findSelfIntersections(geometries):
+    ways=[g for g in geometries if type(g) == geom.Way]
+    intersections=list()
+    for way in ways:
+        seen=set()
+        points=way.points
+        if isClosed(way):
+            points=points[:-1]
+        for point in points:
+            if point in seen:
+                intersections.append(point)
+            seen.add(point)
+    return intersections
+
 def similar(way1, way2):
     if len(way1.points)!=len(way2.points):
         return False
@@ -176,15 +190,19 @@ def preOutputTransform(geometries, features):
             way.addparent(newrel)
             newrel.members.append((way,"outer"))
             feature.replacejwithi(newrel, way)
-    print("Splitting relations")
     lint(geometries,"Before split")
     featuresmap = {feature.geometry : feature for feature in features}
+    print("Finding self intersections")
+    intersections=findSelfIntersections(geometries)
+    print("Finding shared vertices")
     corners = findSharedVertices(geometries)
+    print("Splitting ways")
+    #~ print(set(intersections).intersection(corners))
     ways = [g for g in geometries if type(g) == geom.Way]
     for way in ways:
         is_way_in_relation = len([p for p in way.parents if type(p) == geom.Relation]) > 0
-        thesecorners = set(corners).intersection(way.points)
-        if len(thesecorners) > 1:
+        thesecorners = set(corners).union(intersections).intersection(way.points)
+        if len(thesecorners) > 0:
             way_parts = splitWay(way, thesecorners, featuresmap)
             if not is_way_in_relation:
                 rel = mergeIntoNewRelation(way_parts)
