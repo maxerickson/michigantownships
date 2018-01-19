@@ -153,51 +153,50 @@ def isClosed(way):
 def preOutputTransform(geometries, features):
     if geometries is None and features is None:
         return
-    lint(geometries,"At entry")
-    featuresmap = {feature.geometry : feature for feature in features}
+    lint(geometries, features,"At entry",True)
+    print("Patching features")
+    for f in features:
+        if f not in f.geometry.parents:
+            f.geometry.addparent(f)
+    lint(geometries, features,"After parent fix",True)
     print("Moving tags to relations")
     # move tags, remove member ways as Features.
     rels=[g for g in geometries if type(g) == geom.Relation]
+    featuresmap = {feature.geometry : feature for feature in features}
     for rel in rels:
+        relfeat=featuresmap[rel]
         # splitWayInRelation does not add the relation as a parent.
         for member,role in rel.members:
             if rel not in member.parents:
                 member.addparent(rel)
-        relfeat=featuresmap[rel]
         if relfeat.tags=={}:
             outers=[m[0] for m in rel.members if m[1]=="outer"]
-            relfeat.tags=featuresmap[outers[0]].tags
+            relfeat.tags.update(featuresmap[outers[0]].tags)
             for member,role in rel.members:
-                if role=="outer" and member in featuresmap:
-                    member.removeparent(featuresmap[member])
+                if member in featuresmap:
+                    memberfeature=featuresmap[member]
+                    member.removeparent(memberfeature)
+                    features.remove(memberfeature)
         else:
             pass
             #~ print("Relation {} has tags.".format(rel.id),relfeat.tags)
     # create relations for ways that are features.
+    featuresmap = {feature.geometry : feature for feature in features}
     ways = [g for g in geometries if type(g) == geom.Way]
     for way in ways:
-        feature = False
-        outers = []
-        for parent in way.parents:
-            if type(parent) == geom.Feature:
-                feature = parent
-            #~ if type(parent) == geom.Relation:
-                #~ for member,role in parent.members:
-                    #~ if role == "outer" and member == way:
-                        #~ outers.append(parent)
-        if feature:
+        if way in featuresmap:
+            feature=featuresmap[way]
             newrel = geom.Relation()
             way.addparent(newrel)
             newrel.members.append((way,"outer"))
             feature.replacejwithi(newrel, way)
-    lint(geometries,"Before split")
+    lint(geometries, features,"Before split")
     featuresmap = {feature.geometry : feature for feature in features}
     print("Finding self intersections")
     intersections=findSelfIntersections(geometries)
     print("Finding shared vertices")
     corners = findSharedVertices(geometries)
     print("Splitting ways")
-    #~ print(set(intersections).intersection(corners))
     ways = [g for g in geometries if type(g) == geom.Way]
     for way in ways:
         is_way_in_relation = len([p for p in way.parents if type(p) == geom.Relation]) > 0
@@ -216,13 +215,12 @@ def preOutputTransform(geometries, features):
                 for parent in way.parents:
                     if type(parent)==geom.Relation:
                         splitWayInRelation(parent, way_parts)
-    lint(geometries,"After split")
+    lint(geometries, features,"After split")
     print("Merging relations")
-    ways = sorted([g for g in geometries if type(g) == geom.Way], key=lambda g: len(g.points))
+    worklist = sorted([g for g in geometries if type(g) == geom.Way], key=lambda g: len(g.points))
     # combine duplicate ways.
     removed=list()
-    worklist=list(ways)
-    for way in ways:
+    for way in list(worklist):
         # skip ways that are already gone
         if way in removed:
             continue
@@ -275,30 +273,39 @@ def preOutputTransform(geometries, features):
             if way not in featuresmap:
                 feat = geom.Feature()
                 feat.geometry = way
+                way.addparent(feat)
             else:
                 feat = featuresmap[way]
             feat.tags.update(newtags)
-    lint(geometries,"After combine.")
+    lint(geometries, features,"After combine.")
     for feat in features:
         if type(feat.geometry) == geom.Relation:
             feat.tags["type"]="boundary"
 
 
-def lint(geometries, message=""):
+def lint(geometries, features, message="", blat=False):
+    if True:
+        return
     ways=[g for g in geometries if type(g) == geom.Way]
     rels=[g for g in geometries if type(g) == geom.Relation]
     results=list()
     # check for geometries with no parents.
     noparents=list()
-    results.append(noparents)
+    results.append(("{} geometries with no parents.",noparents))
     for geo in geometries:
         if len(geo.parents)==0:
             noparents.append(geo)
+    # check for features not listed as parents
+    notlisted=list()
+    results.append(("{} features not used as parents.",notlisted))
+    for f in features:
+        if f not in f.geometry.parents:
+            notlisted.append(f)
     # check for duplicate nodes in ways
     dupenodes=list()
-    results.append(dupenodes)
+    results.append(("{} duplicate nodes in ways.",dupenodes))
     onenodeways=list()
-    results.append(onenodeways)
+    results.append(("{} one node ways.",onenodeways))
     count=0
     for way in ways:
         for i in range(1,len(way.points)):
@@ -308,14 +315,12 @@ def lint(geometries, message=""):
         if len(way.points)==1:
             onenodeways.append(way)
             count+=1
-    if message and any(results):
+    if message and any(result[1] for result in results):
         print(message)
-    if noparents:
-        print("{} geometries with no parents.".format(len(noparents)))
-        for p in noparents:
-            print(p)
-    if dupenodes:
-        print("{} duplicate nodes in ways.".format(len(dupenodes)))
-    if onenodeways:
-        print("{} one node ways.".format(len(onenodeways)))
+    for msg, result in results:
+        if result:
+            print(msg.format(len(result)))
+            if blat:
+                for p in result:
+                    print(p)
     
