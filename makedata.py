@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ElementTree
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description='Process GNIS pipe separated file for use with OGR.')
+    parser = argparse.ArgumentParser(description='Split OSM xml file into separate files.')
     parser.add_argument('infile',
                         help='Source data')
     parser.add_argument('target',
