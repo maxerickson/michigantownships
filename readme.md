@@ -20,6 +20,13 @@ Generate osm data:
 
     ./ogr2osm/ogr2osm.py -t twptranslation.py  -o twp.osm test.shp
 
+Manually clean up incorrect roles.
+
+Split data into files by county:
+
+    python makedata.py manually_cleaned.osm output
+
+
 Create a sample:
 
     ogr2ogr -where "NAME in ('Houghton','Eagle Harbor') and TYPE='Township'" sample.shp test.shp
