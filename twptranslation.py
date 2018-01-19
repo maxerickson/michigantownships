@@ -86,7 +86,7 @@ def splitWayInRelation(rel, way_parts):
         rel.members.append((way, way_role))
 
 def findSharedVertices(geometries):
-    points = [g for g in geometries if type(g) == geom.Point and len(g.parents) > 1]
+    points = [g for g in geometries if isinstance(g, geom.Point) and len(g.parents) > 1]
     vertices=list()
     for p in points:
         neighbors=set()
@@ -104,7 +104,7 @@ def findSharedVertices(geometries):
     return vertices
 
 def findSelfIntersections(geometries):
-    ways=[g for g in geometries if type(g) == geom.Way]
+    ways=[g for g in geometries if isinstance(g, geom.Way)]
     intersections=list()
     for way in ways:
         seen=set()
@@ -161,7 +161,7 @@ def preOutputTransform(geometries, features):
     lint(geometries, features,"After parent fix",True)
     print("Moving tags to relations")
     # move tags, remove member ways as Features.
-    rels=[g for g in geometries if type(g) == geom.Relation]
+    rels=[g for g in geometries if isinstance(g, geom.Relation)]
     featuresmap = {feature.geometry : feature for feature in features}
     for rel in rels:
         relfeat=featuresmap[rel]
@@ -182,7 +182,7 @@ def preOutputTransform(geometries, features):
             #~ print("Relation {} has tags.".format(rel.id),relfeat.tags)
     # create relations for ways that are features.
     featuresmap = {feature.geometry : feature for feature in features}
-    ways = [g for g in geometries if type(g) == geom.Way]
+    ways = [g for g in geometries if isinstance(g, geom.Way)]
     for way in ways:
         if way in featuresmap:
             feature=featuresmap[way]
@@ -197,9 +197,9 @@ def preOutputTransform(geometries, features):
     print("Finding shared vertices")
     corners = findSharedVertices(geometries)
     print("Splitting ways")
-    ways = [g for g in geometries if type(g) == geom.Way]
+    ways = [g for g in geometries if isinstance(g, geom.Way)]
     for way in ways:
-        is_way_in_relation = len([p for p in way.parents if type(p) == geom.Relation]) > 0
+        is_way_in_relation = len([p for p in way.parents if isinstance(p, geom.Relation)]) > 0
         thesecorners = set(corners).union(intersections).intersection(way.points)
         if len(thesecorners) > 0:
             way_parts = splitWay(way, thesecorners, featuresmap)
@@ -213,11 +213,11 @@ def preOutputTransform(geometries, features):
                         wg.removeparent(featuresmap[wg])
             else:
                 for parent in way.parents:
-                    if type(parent)==geom.Relation:
+                    if isinstance(parent, geom.Relation):
                         splitWayInRelation(parent, way_parts)
     lint(geometries, features,"After split")
     print("Merging relations")
-    worklist = sorted([g for g in geometries if type(g) == geom.Way], key=lambda g: len(g.points))
+    worklist = sorted([g for g in geometries if isinstance(g, geom.Way)], key=lambda g: len(g.points))
     # combine duplicate ways.
     removed=list()
     for way in list(worklist):
@@ -230,11 +230,11 @@ def preOutputTransform(geometries, features):
                 break
             if otherway.id!=way.id and similar(way,otherway):
                 for parent in list(otherway.parents):
-                    if type(parent) == geom.Relation:
+                    if isinstance(parent, geom.Relation):
                         parent.replacejwithi(way, otherway)
                 removed.append(otherway)
     # merge adjacent ways
-    ways = [g for g in geometries if type(g) == geom.Way]
+    ways = [g for g in geometries if isinstance(g, geom.Way)]
     junctions=set()
     for way in ways:
         for point in [way.points[0],way.points[-1]]:
@@ -252,7 +252,7 @@ def preOutputTransform(geometries, features):
     #~ c+=1
     # add tags to all ways
     print("Tagging member ways")
-    ways=[g for g in geometries if type(g)  == geom.Way]
+    ways=[g for g in geometries if isinstance(g, geom.Way)]
     featuresmap = {feature.geometry : feature for feature in features}
     for way in ways:
         for parent in way.parents:
@@ -279,15 +279,15 @@ def preOutputTransform(geometries, features):
             feat.tags.update(newtags)
     lint(geometries, features,"After combine.")
     for feat in features:
-        if type(feat.geometry) == geom.Relation:
+        if isinstance(feat.geometry, geom.Relation):
             feat.tags["type"]="boundary"
 
 
 def lint(geometries, features, message="", blat=False):
     if True:
         return
-    ways=[g for g in geometries if type(g) == geom.Way]
-    rels=[g for g in geometries if type(g) == geom.Relation]
+    ways=[g for g in geometries if isinstance(g, geom.Way)]
+    rels=[g for g in geometries if isinstance(g, geom.Relation)]
     results=list()
     # check for geometries with no parents.
     noparents=list()
