@@ -1,5 +1,6 @@
 SELECT DISTINCT ?item ?page_title ?itemLabel ?countyLabel ?gnis WHERE {
-  { ?item wdt:P31 wd:Q5086782 } UNION {?item wdt:P31 wd:Q17205774 }
+  VALUES ?types { wd:Q5086782 wd:Q17205774 }
+  ?item wdt:P31 ?types .
   OPTIONAL { ?item wdt:P590 ?gnis. }
   OPTIONAL { ?item wdt:P131 ?county. }
   OPTIONAL {
