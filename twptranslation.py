@@ -103,18 +103,16 @@ def findSharedVertices(geometries):
             vertices.append(p)
     return vertices
 
-def findSelfIntersections(geometries):
-    ways=[g for g in geometries if isinstance(g, geom.Way)]
+def findSelfIntersections(way):
     intersections=list()
-    for way in ways:
-        seen=set()
-        points=way.points
-        if isClosed(way):
-            points=points[:-1]
-        for point in points:
-            if point in seen:
-                intersections.append(point)
-            seen.add(point)
+    seen=set()
+    points=way.points
+    if isClosed(way):
+        points=points[:-1]
+    for point in points:
+        if point in seen:
+            intersections.append(point)
+        seen.add(point)
     return intersections
 
 def similar(way1, way2):
@@ -192,20 +190,21 @@ def preOutputTransform(geometries, features):
             feature.replacejwithi(newrel, way)
     lint(geometries, features,"Before split")
     featuresmap = {feature.geometry : feature for feature in features}
-    print("Finding self intersections")
-    intersections=findSelfIntersections(geometries)
     print("Finding shared vertices")
     corners = findSharedVertices(geometries)
     print("Splitting ways")
     ways = [g for g in geometries if isinstance(g, geom.Way)]
     for way in ways:
         is_way_in_relation = len([p for p in way.parents if isinstance(p, geom.Relation)]) > 0
-        thesecorners = set(corners).union(intersections).intersection(way.points)
+        intersections=findSelfIntersections(way)
+        thesecorners = set(corners).intersection(way.points).union(intersections)
+        #~ if intersections:
+            #~ print(len(intersections))
         if len(thesecorners) > 0:
             way_parts = splitWay(way, thesecorners, featuresmap)
             if not is_way_in_relation:
                 rel = mergeIntoNewRelation(way_parts)
-                featuresmap = {feature.geometry : feature for feature in features}
+                featuresmap[rel.geometry] = rel
                 if way in featuresmap:
                     rel.tags.update(featuresmap[way].tags)
                 for wg,role in rel.geometry.members:
